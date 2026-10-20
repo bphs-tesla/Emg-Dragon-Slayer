@@ -1,0 +1,16 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# 리더보드 기록
+leaderboard.json
+
+# 센서 설정(컴퓨터마다 다름)
+settings.json

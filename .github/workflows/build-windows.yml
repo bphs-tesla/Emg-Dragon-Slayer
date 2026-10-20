@@ -1,0 +1,44 @@
+name: build-windows
+# - Actions 탭에서 "Run workflow": exe를 만들어 Artifacts로 내려받는다 (릴리즈는 만들지 않음)
+# - v로 시작하는 태그를 올리면(예: v1.0.0): exe를 만들고 GitHub Releases에 zip으로 자동 게시한다
+#     git tag v1.0.0
+#     git push origin v1.0.0
+# (맥에서는 Windows exe를 만들 수 없어서 GitHub의 Windows 컴퓨터에서 만든다)
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write  # 릴리즈를 만들려면 필요하다
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run pytest -q
+      - run: uv run pyinstaller --noconfirm --clean EMG-Dragon-Slayer.spec
+      - name: 만든 exe가 모든 화면을 그리는지 점검
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist\EMG-Dragon-Slayer\EMG-Dragon-Slayer.exe" -ArgumentList "--selftest" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "selftest 실패 (종료 코드 $($p.ExitCode))" }
+      - name: zip으로 묶기
+        shell: pwsh
+        run: |
+          $name = if ($env:GITHUB_REF_TYPE -eq "tag") { "EMG-Dragon-Slayer-$env:GITHUB_REF_NAME-windows" } else { "EMG-Dragon-Slayer-windows" }
+          Compress-Archive -Path "dist\EMG-Dragon-Slayer" -DestinationPath "$name.zip"
+          "ZIP_NAME=$name.zip" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EMG-Dragon-Slayer-windows
+          path: ${{ env.ZIP_NAME }}
+      - name: 릴리즈 만들기 (태그를 올렸을 때만)
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_NAME }}
+          generate_release_notes: true
