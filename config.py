@@ -70,7 +70,7 @@ BOSS_MAX_HP = 120  # 총알 맞는 횟수
 
 # ---- 불 투사체 ----
 FIRE_W, FIRE_H = 26, 38
-FIRE_HIT_SHRINK = 12  # 불 충돌 판정을 그림보다 작게 (판정 = FIRE_W,H에서 이만큼 뺀 크기)
+FIRE_HIT_SHRINK = 10  # 불 충돌 판정을 그림보다 작게 (판정 = FIRE_W,H에서 이만큼 뺀 크기)
 # 보스 체력을 3등분해 앞에서부터 페이즈 1, 2, 3.
 # interval: 불을 떨어뜨리는 주기(초), count: 한 번에 떨어뜨리는 불 개수(위치는 모두 무작위),
 # speed: 불이 보스 아래에서 나와 떨어지기 시작할 때의 속도(초당 픽셀). 내려갈수록 FIRE_GRAVITY만큼 빨라진다,
@@ -78,7 +78,7 @@ FIRE_HIT_SHRINK = 12  # 불 충돌 판정을 그림보다 작게 (판정 = FIRE_
 BOSS_PHASES = [
     {"interval": 0.7, "speed": 130.0, "count": 1, "bolt_interval": 0.0, "meteor_interval": 0.0},
     {"interval": 0.5, "speed": 150.0, "count": 2, "bolt_interval": 2.2, "meteor_interval": 0.0},
-    {"interval": 0.45, "speed": 170.0, "count": 2, "bolt_interval": 1.6, "meteor_interval": 3.5},
+    {"interval": 0.5, "speed": 170.0, "count": 2, "bolt_interval": 1.6, "meteor_interval": 3.5},
 ]
 # 불은 보스 아래에서 나와 중력처럼 서서히 빨라진다. 먼저 나온 불이 더 빨라서 불 사이가 벌어진다.
 # 속도 = sqrt(시작 속도² + 2 × FIRE_GRAVITY × 보스 아래에서 내려온 거리). 클수록 빠르게 가속한다.

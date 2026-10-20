@@ -12,9 +12,9 @@ import paths
 SETTINGS_PATH = os.path.join(paths.data_dir(), "settings.json")
 
 # SpikerBox가 보통 쓰는 USB 칩 제조사 번호(아두이노, CH340, FTDI, CP210x)와 설명에 들어가는 말
-KNOWN_VIDS = {0x2341, 0x2A03, 0x1A86, 0x0403, 0x10C4}
+KNOWN_VIDS = {0x2E73, 0x2341, 0x2A03, 0x1A86, 0x0403, 0x10C4}
 KNOWN_WORDS = ("arduino", "spiker", "backyard", "ch340", "usb serial", "usb-serial", "usb2.0-serial")
-SKIP_WORDS = ("bluetooth", "debug-console", "incoming-port", "modem")  # 센서일 수 없는 포트
+SKIP_WORDS = ("bluetooth", "debug-console", "incoming-port")  # 센서일 수 없는 포트. "modem"은 맥의 usbmodem(센서 포트)에도 들어 있어서 뺐다
 
 
 @dataclass
