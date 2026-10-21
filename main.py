@@ -768,8 +768,13 @@ class App:
         pygame.draw.rect(self.screen, theme.current()["screen_bg"], panel)
         pygame.draw.line(self.screen, theme.current()["line"], (x0, 0), (x0, WIN_H), 2)
         draw_text(self.screen, "Leaderboard", self.f_big, (240, 240, 245), (mid, 30), "center")
-        label = config.DIFFICULTIES[self.difficulty]["label"]
-        draw_text(self.screen, label, self.f_small, (255, 200, 90) if self.difficulty == "hard" else (140, 220, 200), (mid, 66), "center")
+        label = config.DIFFICULTIES[self.difficulty]["label"]  # 1위 왕관(가운데)을 가리지 않게 왼쪽 빈자리에 알약 모양으로
+        color = (255, 200, 90) if self.difficulty == "hard" else (140, 220, 200)
+        pill = pygame.Rect(0, 0, 76, 26)
+        pill.center = (x0 + 58, 80)
+        pygame.draw.rect(self.screen, (30, 38, 58), pill, border_radius=13)
+        pygame.draw.rect(self.screen, color, pill, 2, border_radius=13)
+        draw_text(self.screen, label, self.f_small, color, pill.center, "center")
         if self.debug:
             draw_text(self.screen, "DEBUG  1/2/3: 페이즈  Enter: 다시", self.f_small, (255, 120, 120), (mid, WIN_H - 14), "center")
         if not self.entries:
@@ -813,9 +818,9 @@ class App:
 
         for w in b.boss.warnings:
             draw_bolt_warning(a, w[0], w[1])
-        for f in b.fires:  # 보스 뒤로 지나가는 것처럼 보스보다 먼저 그린다
-            draw_fire(a, f, self.assets)
         draw_boss(a, round(b.boss.x), config.BOSS_Y, self.assets)
+        for f in b.fires:  # 보스 몸에서 나오는 모습이 보이도록 보스 위에 그린다
+            draw_fire(a, f, self.assets)
         for bolt in b.bolts:
             draw_bolt(a, bolt)
         for meteor in b.meteors:
