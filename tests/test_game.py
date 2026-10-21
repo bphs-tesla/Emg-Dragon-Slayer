@@ -194,3 +194,12 @@ def test_meteor_leaves_the_arena_when_missed():
         b.update(0.05, 0)
         b.player.x = 30
     assert not b.meteors and b.player.lives == config.MAX_LIVES
+
+
+def test_easy_difficulty_is_gentler_than_hard():
+    easy, hard = config.DIFFICULTIES["easy"], config.DIFFICULTIES["hard"]
+    assert hard["phases"] is config.BOSS_PHASES and len(easy["phases"]) == len(hard["phases"])
+    for e, h in zip(easy["phases"], hard["phases"]):
+        assert e["interval"] >= h["interval"] and e["speed"] <= h["speed"] and e["count"] <= h["count"]
+    assert not any(p["meteor_interval"] for p in easy["phases"]) and easy["gravity"] <= hard["gravity"]
+    assert Battle(difficulty="easy").gravity == easy["gravity"] and make().boss.phases is config.BOSS_PHASES

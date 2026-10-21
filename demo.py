@@ -3,7 +3,7 @@
 import random
 
 import emg
-from config import ARENA_W, BOSS_MAX_HP, FAKE_RAMP, FIRE_GRAVITY, PLAYER_SPEED
+from config import ARENA_W, DEFAULT_DIFFICULTY, BOSS_MAX_HP, FAKE_RAMP, PLAYER_SPEED
 from game import Battle, PLAYING, fire_speed
 
 LOOK_AHEAD = 260  # 플레이어 위로 이만큼 안에 있는 불을 피할 대상으로 본다
@@ -13,9 +13,10 @@ PATH_MARGIN = 34  # 이동하는 길 양옆으로 이만큼 안에 위험이 있
 
 
 class Demo:
-    def __init__(self, rng: random.Random | None = None):
+    def __init__(self, rng: random.Random | None = None, difficulty: str = DEFAULT_DIFFICULTY):
         self._rng = rng or random.Random(3)
-        self.battle = Battle(self._rng)
+        self.difficulty = difficulty
+        self.battle = Battle(self._rng, difficulty)
         self.force = 0.5  # 게이지에 보이는 힘. 봇이 정한 목표값으로 천천히 움직인다
 
     def _threats(self) -> list[tuple[float, float]]:
@@ -23,12 +24,12 @@ class Demo:
         b = self.battle
         top = b.player.rect.top
         v0 = b.boss.config["speed"]
-        g = FIRE_GRAVITY
+        g = self.battle.gravity
         out = []
         for f in b.fires:
             if f.bottom > 0 and f.top < top and top - f.bottom < LOOK_AHEAD:
                 # 가속하며 내려오므로 도착까지 걸리는 시간 = (도착 때 속도 - 지금 속도) / 중력
-                t = (fire_speed(top - f.bottom + f.y, v0) - fire_speed(f.y, v0)) / g
+                t = (fire_speed(top - f.bottom + f.y, v0, g) - fire_speed(f.y, v0, g)) / g
                 out.append((f.centerx, max(0.0, t)))
         out += [(w[0], w[1] + 0.05) for w in b.boss.warnings]
         out += [(bolt.centerx, 0.0) for bolt in b.bolts if bolt.bottom < top]
@@ -61,4 +62,4 @@ class Demo:
         self.battle.events.clear()  # 예시 화면은 소리를 내지 않는다
         # 보여주기용이라 끝나지 않게, 가장 어려운 3페이즈 전에 새 판을 시작한다
         if self.battle.state != PLAYING or self.battle.boss.phase >= 2 or self.battle.boss.hp < BOSS_MAX_HP * 0.1:
-            self.battle = Battle(self._rng)
+            self.battle = Battle(self._rng, self.difficulty)
