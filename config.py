@@ -78,7 +78,7 @@ FIRE_HIT_SHRINK = 11  # 불 충돌 판정을 그림보다 작게 (판정 = FIRE_
 BOSS_PHASES = [
     {"interval": 0.7, "speed": 130.0, "count": 1, "bolt_interval": 0.0, "meteor_interval": 0.0},
     {"interval": 0.5, "speed": 150.0, "count": 2, "bolt_interval": 2.2, "meteor_interval": 0.0},
-    {"interval": 0.46, "speed": 170.0, "count": 2, "bolt_interval": 1.6, "meteor_interval": 3.5},
+    {"interval": 0.45, "speed": 170.0, "count": 2, "bolt_interval": 1.6, "meteor_interval": 3.5},
 ]
 # 쉬움: 불이 적고 느리고, 빠른 총알은 3페이즈에만, 운석은 없다.
 EASY_PHASES = [
