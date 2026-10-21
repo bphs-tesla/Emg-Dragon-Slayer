@@ -302,9 +302,9 @@ def draw_meteor(surf, m, t: float) -> None:
 
 
 def draw_bolt(surf, rect) -> None:
-    """작은 판정에 맞춰 가늘고 밝은 침 모양으로 그린다."""
-    pygame.draw.rect(surf, (255, 90, 90), rect.inflate(6, 0), border_radius=4)
-    pygame.draw.rect(surf, (255, 245, 220), rect, border_radius=3)
+    """작은 판정에 맞춰 가늘고 밝은 푸른 침 모양으로 그린다."""
+    pygame.draw.rect(surf, (40, 120, 255), rect.inflate(6, 0), border_radius=4)
+    pygame.draw.rect(surf, (200, 235, 255), rect, border_radius=3)
 
 
 class App:
