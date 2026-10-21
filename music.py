@@ -19,6 +19,7 @@ SCREEN_TRACKS = {
     "title": "title",
     "howto": "title",
     "name": "title",
+    "difficulty": "title",
     "select": "title",
     "calib": "title",
     "play": "battle",

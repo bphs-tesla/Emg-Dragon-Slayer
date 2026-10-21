@@ -16,6 +16,8 @@ from config import (
     BOSS_BODY_H,
     BOSS_Y,
     BULLET_SPEED,
+    DEFAULT_DIFFICULTY,
+    DIFFICULTIES,
     FIRE_GRAVITY,
     FIRE_HIT_SHRINK,
     METEOR_GRAVITY,
@@ -27,18 +29,20 @@ from player import Player
 FIRE_ORIGIN_Y = BOSS_Y + BOSS_BODY_H / 2  # 불이 나오는 보스 몸 아래쪽 가장자리
 
 
-def fire_speed(y: float, start_speed: float) -> float:
+def fire_speed(y: float, start_speed: float, gravity: float = FIRE_GRAVITY) -> float:
     """불이 보스 아래에서 출발해 y 높이까지 내려왔을 때의 속도. 위치만으로 정해져 불마다 따로 저장할 게 없다."""
-    return math.sqrt(start_speed**2 + 2 * FIRE_GRAVITY * max(0.0, y - FIRE_ORIGIN_Y))
+    return math.sqrt(start_speed**2 + 2 * gravity * max(0.0, y - FIRE_ORIGIN_Y))
 
 
 PLAYING, WON, LOST = "playing", "won", "lost"
 
 
 class Battle:
-    def __init__(self, rng: random.Random | None = None):
+    def __init__(self, rng: random.Random | None = None, difficulty: str = DEFAULT_DIFFICULTY):
+        self.difficulty = difficulty
+        self.gravity = DIFFICULTIES[difficulty]["gravity"]
         self.player = Player()
-        self.boss = Boss(rng)
+        self.boss = Boss(rng, DIFFICULTIES[difficulty]["phases"])
         self.bullets: list[pygame.Rect] = []
         self.fires: list[pygame.Rect] = []
         self.meteors: list[Meteor] = []  # 3페이즈에 가끔 떨어지는 큰 운석
@@ -75,7 +79,7 @@ class Battle:
         self.bullets = [b for b in self.bullets if b.bottom > 0]
         speed = self.boss.config["speed"]
         for f in self.fires:
-            f.y += round(fire_speed(f.y, speed) * dt)
+            f.y += round(fire_speed(f.y, speed, self.gravity) * dt)
         self.fires = [f for f in self.fires if f.top < ARENA_H]
         for m in self.meteors:
             m.vy += METEOR_GRAVITY * dt

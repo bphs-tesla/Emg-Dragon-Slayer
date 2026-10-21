@@ -60,3 +60,16 @@ def test_old_records_without_won_load_as_wins(tmp_path):
     path = tmp_path / "old.json"
     path.write_text(json.dumps([{"name": "예전", "time": 33.3, "lives": 2}]))
     assert load(str(path))[0]["won"] is True
+
+
+def test_difficulties_are_stored_separately_and_old_files_count_as_hard(tmp_path):
+    path = str(tmp_path / "lb.json")
+    easy, _ = add([], "쉬움", 30.0, 5)
+    save(easy, path, difficulty="easy")
+    assert load(path, "easy") == easy and load(path, "hard") == []
+    hard, _ = add([], "어려움", 60.0, 2)
+    save(hard, path, difficulty="hard")
+    assert load(path, "easy") == easy and load(path, "hard") == hard
+    old = tmp_path / "old.json"
+    old.write_text(json.dumps(hard), encoding="utf-8")
+    assert load(str(old), "hard") == hard and load(str(old), "easy") == []

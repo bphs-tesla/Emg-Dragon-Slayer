@@ -9,7 +9,7 @@ uv run main.py                 # 센서 없이 키보드 모드
 uv run main.py --list-ports    # 센서 포트 찾기
 uv run main.py --port <포트>   # SpikerBox 연결
 uv run main.py --windowed      # 창 모드로 시작 (F11로 전환)
-uv run main.py --debug         # 개발자용: 바로 게임 플레이 (--hero N으로 캐릭터 선택)
+uv run main.py --debug         # 개발자용: 바로 게임 플레이 (--hero N으로 캐릭터, --difficulty easy|hard로 난이도)
 uv run pytest                  # 테스트
 ```
 
@@ -17,7 +17,8 @@ uv run pytest                  # 테스트
 
 타이틀(배경 이미지 `assets/ui/title_bg.jpg`) → How to Play(팔 그림과 자동 플레이 예시) → 이름 입력 → 캐릭터 선택 → 힘 최소/최대 측정 → 게임 → 결과 → 타이틀.
 
-- 게임 화면 오른쪽에 리더보드가 있다. 이긴 사람이 먼저(클리어 시간이 짧은 순, 같으면 남은 목숨이 많은 순), 진 사람은 그 뒤에 오래 버틴 순으로 20명까지 남고 `leaderboard.json`에 저장된다.
+- 게임 화면 오른쪽에 리더보드가 있다. 이긴 사람이 먼저(클리어 시간이 짧은 순, 같으면 남은 목숨이 많은 순), 진 사람은 그 뒤에 오래 버틴 순으로 20명까지 남고 `leaderboard.json`에 저장된다. 쉬움과 어려움 기록은 따로 쌓인다.
+- 이름을 넣은 뒤 난이도(쉬움/어려움)를 고른다. 어려움이 원래 패턴이고, 쉬움은 `config.py`의 `EASY_PHASES`와 `DIFFICULTIES`로 조절한다.
 - 모든 화면에서 `Enter`로 다음으로, `Esc`로 종료한다. 전체 화면으로 시작하고 `F11`로 창 모드와 오갈 수 있다. 창 모드로 시작하려면 `--windowed`(또는 `config.py`의 `FULLSCREEN = False`)를 쓴다. 창 모드에서는 창 크기를 마우스로 바꿀 수 있고 화면 비율은 유지된다.
 
 ## 센서 고르기

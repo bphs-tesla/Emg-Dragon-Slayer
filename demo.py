@@ -2,20 +2,27 @@
 
 import random
 
+import pygame
+
 import emg
-from config import ARENA_W, BOSS_MAX_HP, FAKE_RAMP, FIRE_GRAVITY, PLAYER_SPEED
-from game import Battle, PLAYING, fire_speed
+from config import ARENA_W, FIRE_H, FIRE_W, DEFAULT_DIFFICULTY, BOSS_MAX_HP, FAKE_RAMP, PLAYER_SPEED
+from game import FIRE_ORIGIN_Y, Battle, PLAYING, fire_speed
 
 LOOK_AHEAD = 260  # 플레이어 위로 이만큼 안에 있는 불을 피할 대상으로 본다
 SAFE_GAP = 52     # 불과 이만큼 떨어진 곳이면 안전하게 본다
 DEAD_ZONE = 14    # 목표 위치와 이만큼 가까우면 멈춘다
+AIM_FIRST = 0.4     # 예시 시작 후 첫 조준 불까지(초). 처음부터 좌우 이동이 보이게
+AIM_INTERVAL = 2.0  # 이 간격마다 플레이어 머리 위에서 불을 하나 떨어뜨린다
+AIM_CLEAR = 130     # 조준 불은 다른 위험이 플레이어 좌우 이만큼 안에 없을 때만 떨어뜨린다
 PATH_MARGIN = 34  # 이동하는 길 양옆으로 이만큼 안에 위험이 있으면 지나가지 않는다
 
 
 class Demo:
-    def __init__(self, rng: random.Random | None = None):
+    def __init__(self, rng: random.Random | None = None, difficulty: str = DEFAULT_DIFFICULTY):
         self._rng = rng or random.Random(3)
-        self.battle = Battle(self._rng)
+        self.difficulty = difficulty
+        self.battle = Battle(self._rng, difficulty)
+        self._aim_cd = AIM_FIRST
         self.force = 0.5  # 게이지에 보이는 힘. 봇이 정한 목표값으로 천천히 움직인다
 
     def _threats(self) -> list[tuple[float, float]]:
@@ -23,12 +30,12 @@ class Demo:
         b = self.battle
         top = b.player.rect.top
         v0 = b.boss.config["speed"]
-        g = FIRE_GRAVITY
+        g = self.battle.gravity
         out = []
         for f in b.fires:
             if f.bottom > 0 and f.top < top and top - f.bottom < LOOK_AHEAD:
                 # 가속하며 내려오므로 도착까지 걸리는 시간 = (도착 때 속도 - 지금 속도) / 중력
-                t = (fire_speed(top - f.bottom + f.y, v0) - fire_speed(f.y, v0)) / g
+                t = (fire_speed(top - f.bottom + f.y, v0, g) - fire_speed(f.y, v0, g)) / g
                 out.append((f.centerx, max(0.0, t)))
         out += [(w[0], w[1] + 0.05) for w in b.boss.warnings]
         out += [(bolt.centerx, 0.0) for bolt in b.bolts if bolt.bottom < top]
@@ -54,11 +61,23 @@ class Demo:
             return 0.05
         return 0.5
 
+    def _can_aim(self) -> bool:
+        """무작위 불만으로는 가만히 서 있는 시간이 길어서, 일부러 플레이어 위로 불을 떨어뜨려 피하는 모습을 보여준다.
+        다른 위험이 곁에 없고 봇이 멈춰 있을 때만 떨어뜨려서, 억울하게 맞는 장면을 만들지 않는다."""
+        px = self.battle.player.rect.centerx
+        return abs(self.force - 0.5) < 0.1 and all(abs(tx - px) > AIM_CLEAR for tx, _ in self._threats())
+
     def update(self, dt: float) -> None:
         step = FAKE_RAMP * 3 * dt  # 봇은 사람보다 힘을 빨리 바꾼다
         self.force += max(-step, min(step, self._target_force() - self.force))
+        self._aim_cd -= dt
+        if self._aim_cd <= 0 and self._can_aim():
+            self._aim_cd += AIM_INTERVAL
+            x = self.battle.player.rect.centerx
+            self.battle.fires.append(pygame.Rect(int(x - FIRE_W / 2), int(FIRE_ORIGIN_Y), FIRE_W, FIRE_H))
         self.battle.update(dt, emg.direction(self.force))
         self.battle.events.clear()  # 예시 화면은 소리를 내지 않는다
         # 보여주기용이라 끝나지 않게, 가장 어려운 3페이즈 전에 새 판을 시작한다
         if self.battle.state != PLAYING or self.battle.boss.phase >= 2 or self.battle.boss.hp < BOSS_MAX_HP * 0.1:
-            self.battle = Battle(self._rng)
+            self.battle = Battle(self._rng, self.difficulty)
+            self._aim_cd = AIM_FIRST

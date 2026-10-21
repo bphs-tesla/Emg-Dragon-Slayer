@@ -302,13 +302,13 @@ def draw_meteor(surf, m, t: float) -> None:
 
 
 def draw_bolt(surf, rect) -> None:
-    """작은 판정에 맞춰 가늘고 밝은 침 모양으로 그린다."""
-    pygame.draw.rect(surf, (255, 90, 90), rect.inflate(6, 0), border_radius=4)
-    pygame.draw.rect(surf, (255, 245, 220), rect, border_radius=3)
+    """작은 판정에 맞춰 가늘고 밝은 푸른 침 모양으로 그린다."""
+    pygame.draw.rect(surf, (40, 120, 255), rect.inflate(6, 0), border_radius=4)
+    pygame.draw.rect(surf, (200, 235, 255), rect, border_radius=3)
 
 
 class App:
-    def __init__(self, source, debug: bool = False, hero: int = 0, ask_sensor: bool = False):
+    def __init__(self, source, debug: bool = False, hero: int = 0, ask_sensor: bool = False, difficulty: str = config.DEFAULT_DIFFICULTY):
         pygame.init()
         pygame.display.set_caption(GAME_TITLE)
         # SCALED: 창이나 화면 크기에 맞춰 비율을 유지하며 키운다. 창 모드는 크기를 마우스로 바꿀 수 있다
@@ -349,15 +349,17 @@ class App:
         self.fake_force = 0.0
         self.est = emg.ForceEstimator()
 
-        # 화면 순서: title -> howto -> name -> select -> calib -> play -> result -> title
+        # 화면 순서: title -> howto -> name -> difficulty -> select -> calib -> play -> result -> title
         self.state = "title"
         self.measure = measure.Measurement(started=True)
         self.hero = 0
-        self.battle = game.Battle()
+        self.difficulty = difficulty
+        self.battle = game.Battle(difficulty=difficulty)
         self.demo = demo.Demo()
         self.name = ""
         self.composing = ""  # 한글 조합 중인 글자
-        self.entries = leaderboard.load()
+        self._boards = {d: leaderboard.load(difficulty=d) for d in config.DIFFICULTIES}  # 난이도마다 따로 쌓는 기록
+        self.entries = self._boards[difficulty]
         self.rank: int | None = None
         self.sfx = sfx.Sfx()
         self.music = music.Music()
@@ -464,6 +466,15 @@ class App:
             elif key == pygame.K_RETURN and self.name.strip():
                 self.name = self.name.strip()
                 self.sfx.play("confirm")
+                self.go("difficulty")
+        elif self.state == "difficulty":
+            keys = list(config.DIFFICULTIES)
+            if key in (pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN):
+                step = -1 if key in (pygame.K_LEFT, pygame.K_UP) else 1
+                self.set_difficulty(keys[(keys.index(self.difficulty) + step) % len(keys)])
+                self.sfx.play("select")
+            elif key == pygame.K_RETURN:
+                self.sfx.play("confirm")
                 self.go("select")
         elif self.debug and self.state == "play" and key in (pygame.K_1, pygame.K_2, pygame.K_3):
             n = len(config.BOSS_PHASES)  # 보스 체력을 해당 페이즈가 시작하는 지점으로
@@ -481,7 +492,7 @@ class App:
                 self.start_calibration()
         elif self.state == "result":
             if key == pygame.K_RETURN and self.debug:
-                self.battle = game.Battle()
+                self.battle = game.Battle(difficulty=self.difficulty)
                 self.go("play")
             elif key == pygame.K_RETURN:  # 다음 사람을 위해 처음 화면으로
                 self.name = ""
@@ -496,6 +507,12 @@ class App:
             if ch.isprintable() and len(self.name) < NAME_MAX:
                 self.name += ch
                 self.sfx.play("type")
+
+    def set_difficulty(self, difficulty: str):
+        """난이도를 바꾸면 오른쪽 리더보드도 그 난이도의 기록으로 바뀐다."""
+        self._boards[self.difficulty] = self.entries
+        self.difficulty = difficulty
+        self.entries = self._boards[difficulty]
 
     def start_calibration(self):
         """안내 화면 없이 바로 카운트다운부터 시작한다."""
@@ -544,7 +561,7 @@ class App:
         self.hero = max(0, min(self.assets.hero_count - 1, hero))
         if self.fake:  # 키보드 모드는 측정을 건너뛰고 가짜 센서 값에 맞춘다
             self.est.calibrate(self.source.base_noise, self.source.base_noise + self.source.scale)  # 가짜 센서가 낼 수 있는 진폭 범위
-            self.battle = game.Battle()
+            self.battle = game.Battle(difficulty=self.difficulty)
             self.go("play")
         else:  # 센서가 있으면 측정은 그대로 한다
             self.start_calibration()
@@ -554,7 +571,7 @@ class App:
             self.entries, self.rank = leaderboard.add(
                 self.entries, self.name, self.battle.time, self.battle.player.lives, self.battle.state == game.WON
             )
-            leaderboard.save(self.entries)
+            leaderboard.save(self.entries, difficulty=self.difficulty)
         self.go("result")
 
     def update_calibration(self, dt, n_samples):
@@ -567,7 +584,7 @@ class App:
         if m.done:
             self.sfx.play("measure_done")
             self.est.calibrate(m.lo, m.hi)
-            self.battle = game.Battle()
+            self.battle = game.Battle(difficulty=self.difficulty)
             self.go("play")
 
     # ---- 그리기 ----
@@ -751,6 +768,13 @@ class App:
         pygame.draw.rect(self.screen, theme.current()["screen_bg"], panel)
         pygame.draw.line(self.screen, theme.current()["line"], (x0, 0), (x0, WIN_H), 2)
         draw_text(self.screen, "Leaderboard", self.f_big, (240, 240, 245), (mid, 30), "center")
+        label = config.DIFFICULTIES[self.difficulty]["label"]  # 1위 왕관(가운데)을 가리지 않게 왼쪽 빈자리에 알약 모양으로
+        color = (255, 200, 90) if self.difficulty == "hard" else (140, 220, 200)
+        pill = pygame.Rect(0, 0, 76, 26)
+        pill.center = (x0 + 58, 80)
+        pygame.draw.rect(self.screen, (30, 38, 58), pill, border_radius=13)
+        pygame.draw.rect(self.screen, color, pill, 2, border_radius=13)
+        draw_text(self.screen, label, self.f_small, color, pill.center, "center")
         if self.debug:
             draw_text(self.screen, "DEBUG  1/2/3: 페이즈  Enter: 다시", self.f_small, (255, 120, 120), (mid, WIN_H - 14), "center")
         if not self.entries:
@@ -794,9 +818,9 @@ class App:
 
         for w in b.boss.warnings:
             draw_bolt_warning(a, w[0], w[1])
-        for f in b.fires:  # 보스 뒤로 지나가는 것처럼 보스보다 먼저 그린다
-            draw_fire(a, f, self.assets)
         draw_boss(a, round(b.boss.x), config.BOSS_Y, self.assets)
+        for f in b.fires:  # 보스 몸에서 나오는 모습이 보이도록 보스 위에 그린다
+            draw_fire(a, f, self.assets)
         for bolt in b.bolts:
             draw_bolt(a, bolt)
         for meteor in b.meteors:
@@ -879,6 +903,20 @@ class App:
         if not self.source.connected:
             draw_text(self.screen, "센서 연결 안 됨 - 포트를 확인하세요", self.f_body, (255, 110, 110), (cx, WIN_H - 100), "center")
 
+    def draw_difficulty(self):
+        cx = WIN_W // 2
+        draw_text(self.screen, "난이도를 선택해주세요", self.f_title, (240, 240, 245), (cx, 120), "center")
+        for i, (key, d) in enumerate(config.DIFFICULTIES.items()):
+            box = pygame.Rect(0, 0, 560, 130)
+            box.center = (cx, 280 + i * 160)
+            on = key == self.difficulty
+            pygame.draw.rect(self.screen, (60, 56, 40) if on else (30, 38, 58), box, border_radius=16)
+            pygame.draw.rect(self.screen, (255, 200, 90) if on else (60, 78, 104), box, 4 if on else 2, border_radius=16)
+            draw_text(self.screen, d["label"], self.f_title, (255, 255, 255) if on else (190, 205, 225), (cx, box.centery - 22), "center")
+            draw_text(self.screen, d["desc"], self.f_small, (200, 210, 225) if on else (140, 155, 180), (cx, box.centery + 30), "center")
+        draw_text(self.screen, "기록은 난이도마다 따로 쌓여요", self.f_small, (160, 160, 180), (cx, 590), "center")
+        draw_text(self.screen, "↑ ↓ 로 고르고 Enter로 확인", self.f_body, (160, 160, 180), (cx, WIN_H - 70), "center")
+
     def draw_select(self):
         cx = WIN_W // 2
         n = self.assets.hero_count
@@ -952,7 +990,7 @@ class App:
     def selftest(self) -> None:
         """모든 화면을 한 번씩 그려 본다. exe로 묶은 뒤 파일(그림, 글꼴, 소리)이 제대로 들어갔는지 확인할 때 쓴다."""
         self.source.start()  # FakeSource는 start 전에 읽으면 부팅 이후 시간만큼 샘플을 만든다
-        for state in ("title", "howto", "name", "select", "calib", "play", "sensor", "result"):
+        for state in ("title", "howto", "name", "difficulty", "select", "calib", "play", "sensor", "result"):
             if state == "result":
                 self.battle.state = "lost"
             self.go(state)
@@ -996,6 +1034,7 @@ def main():
     parser.add_argument("--selftest", action="store_true", help="모든 화면을 한 번씩 그려 보고 끝낸다 (exe 점검용)")
     parser.add_argument("--windowed", action="store_true", help="창 모드로 시작 (게임 중에는 F11로 전환)")
     parser.add_argument("--debug", action="store_true", help="개발자용: 바로 게임 플레이 (기록 안 남김, 1/2/3 키로 페이즈 이동)")
+    parser.add_argument("--difficulty", choices=list(config.DIFFICULTIES), default=config.DEFAULT_DIFFICULTY, help="--debug에서 쓸 난이도")
     parser.add_argument("--hero", type=int, default=1, help="--debug에서 쓸 캐릭터 번호 (1부터)")
     args = parser.parse_args()
 
@@ -1016,7 +1055,7 @@ def main():
         source = FakeSource()
         # 명령줄에 센서를 안 줬으면 연결된 센서를 찾아 고르게 한다 (exe로 더블클릭해도 쓸 수 있게)
         ask = not (args.keyboard or args.debug)
-    App(source, debug=args.debug, hero=args.hero - 1, ask_sensor=ask).run()
+    App(source, debug=args.debug, hero=args.hero - 1, ask_sensor=ask, difficulty=args.difficulty).run()
 
 
 if __name__ == "__main__":

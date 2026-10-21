@@ -42,8 +42,9 @@ class Meteor:
 
 
 class Boss:
-    def __init__(self, rng: random.Random | None = None):
+    def __init__(self, rng: random.Random | None = None, phases: list[dict] | None = None):
         self._rng = rng or random.Random()
+        self.phases = phases or BOSS_PHASES
         self.x = ARENA_W / 2
         self.hp = BOSS_MAX_HP
         self._fire_cd = 1.0
@@ -68,12 +69,12 @@ class Boss:
     @property
     def phase(self) -> int:
         """0부터 시작하는 페이즈. 체력을 BOSS_PHASES 개수만큼 등분해 줄어든 만큼 넘어간다."""
-        n = len(BOSS_PHASES)
+        n = len(self.phases)
         return min(n - 1, int((1.0 - self.hp / BOSS_MAX_HP) * n))
 
     @property
     def config(self) -> dict:
-        return BOSS_PHASES[self.phase]
+        return self.phases[self.phase]
 
     def update(self, dt: float, target_x: float | None = None) -> list[pygame.Rect]:
         """이번에 새로 떨어뜨린 불을 돌려준다. target_x는 빠른 총알이 노리는 플레이어 위치다."""

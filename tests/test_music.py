@@ -65,7 +65,7 @@ def test_screens_pick_tracks():
 
 def test_app_switches_music_with_screens(monkeypatch):
     config.FULLSCREEN = False
-    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None: None)
+    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None, **kw: None)
     app = App(FakeSource())
     if not app.music.available:
         return

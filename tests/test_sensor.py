@@ -36,6 +36,15 @@ def test_scan_prefers_usb_ports_and_marks_likely(monkeypatch):
     assert ports[0].likely and not ports[1].likely
 
 
+def test_scan_keeps_mac_usbmodem_spikerbox(monkeypatch):
+    patch_comports(monkeypatch, [
+        fake_port("/dev/cu.usbmodem1101", "SpikerBox", vid=0x2E73, manufacturer="Backyard Brains"),
+        fake_port("/dev/cu.QCYMeloBudsPro", "n/a"),
+    ])
+    ports = sensor.scan()
+    assert [p.device for p in ports] == ["/dev/cu.usbmodem1101"] and ports[0].likely
+
+
 def test_scan_falls_back_to_non_usb_ports_when_none_are_usb(monkeypatch):
     patch_comports(monkeypatch, [fake_port("COM3", "통신 포트"), fake_port("/dev/cu.debug-console", "n/a")])
     assert [p.device for p in sensor.scan()] == ["COM3"]

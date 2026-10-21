@@ -5,7 +5,7 @@ import json
 import os
 
 import paths
-from config import LEADERBOARD_SIZE
+from config import DEFAULT_DIFFICULTY, LEADERBOARD_SIZE
 
 PATH = os.path.join(paths.data_dir(), "leaderboard.json")
 
@@ -16,11 +16,9 @@ def _key(entry: dict) -> tuple:
     return (1, -entry["time"], 0)
 
 
-def load(path: str = PATH) -> list[dict]:
-    """파일이 없거나 깨졌으면 빈 기록으로 시작한다. won이 없는 예전 기록은 승리로 본다."""
+def _parse(data) -> list[dict]:
+    """깨진 기록은 빈 목록. won이 없는 예전 기록은 승리로 본다."""
     try:
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
         entries = [
             {
                 "name": str(e["name"]),
@@ -30,15 +28,36 @@ def load(path: str = PATH) -> list[dict]:
             }
             for e in data
         ]
-    except (OSError, ValueError, KeyError, TypeError):
+    except (ValueError, KeyError, TypeError):
         return []
     return sorted(entries, key=_key)[:LEADERBOARD_SIZE]
 
 
-def save(entries: list[dict], path: str = PATH) -> None:
+def _read(path: str) -> dict:
+    """파일 전체를 {난이도: 기록 목록}으로. 난이도가 없던 예전 파일(목록)은 어려움 기록으로 본다."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    if isinstance(data, list):
+        return {DEFAULT_DIFFICULTY: data}
+    return data if isinstance(data, dict) else {}
+
+
+def load(path: str = PATH, difficulty: str = DEFAULT_DIFFICULTY) -> list[dict]:
+    """난이도별 기록. 파일이 없거나 깨졌으면 빈 기록으로 시작한다."""
+    data = _read(path).get(difficulty, [])
+    return _parse(data) if isinstance(data, list) else []
+
+
+def save(entries: list[dict], path: str = PATH, difficulty: str = DEFAULT_DIFFICULTY) -> None:
+    """이 난이도의 기록만 바꾸고 다른 난이도 기록은 그대로 둔다."""
+    boards = _read(path)
+    boards[difficulty] = entries
     try:
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(entries, f, ensure_ascii=False, indent=2)
+            json.dump(boards, f, ensure_ascii=False, indent=2)
     except OSError:
         pass  # 저장이 안 돼도 게임은 계속된다
 

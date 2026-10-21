@@ -5,6 +5,7 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame
 
 import config
+import game
 
 config.FULLSCREEN = False  # 화면 없는 테스트 환경
 from main import App
@@ -12,7 +13,7 @@ from source import FakeSource
 
 
 def test_screens_follow_the_order_and_every_screen_draws(monkeypatch):
-    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None: None)
+    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None, **kw: None)
     app = App(FakeSource())
     app.source.start()  # start 전에 읽으면 부팅 이후 시간만큼 샘플을 만든다
     app.entries = []
@@ -31,7 +32,10 @@ def test_screens_follow_the_order_and_every_screen_draws(monkeypatch):
     app.on_text("조재민")
     app.draw()
     app.handle_key(pygame.K_RETURN)
-    assert app.state == "select" and app.name == "조재민"
+    assert app.state == "difficulty" and app.name == "조재민"
+    app.draw()
+    app.handle_key(pygame.K_RETURN)
+    assert app.state == "select"
     app.draw()
     app.handle_key(pygame.K_RETURN)
     assert app.state == "calib"
@@ -58,7 +62,7 @@ def test_text_input_ignored_outside_name_screen():
 
 def test_win_records_and_result_returns_to_title(monkeypatch):
     saved = []
-    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None: saved.append(list(entries)))
+    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None, **kw: saved.append(list(entries)))
     app = App(FakeSource())
     app.entries = []
     app.name = "승자"
@@ -75,7 +79,7 @@ def test_win_records_and_result_returns_to_title(monkeypatch):
 
 
 def test_loss_is_recorded_with_survival_time(monkeypatch):
-    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None: None)
+    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None, **kw: None)
     app = App(FakeSource())
     app.entries = []
     app.name = "패자"
@@ -90,7 +94,7 @@ def test_loss_is_recorded_with_survival_time(monkeypatch):
 
 def test_debug_mode_skips_to_play_and_does_not_record(monkeypatch):
     saved = []
-    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None: saved.append(entries))
+    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None, **kw: saved.append(entries))
     app = App(FakeSource(), debug=True, hero=2)
     assert app.state == "play" and app.hero == 2 and app.est.calibrated
     app.handle_key(pygame.K_3)
@@ -139,7 +143,7 @@ def test_defeat_message_is_drawn_on_loss_only(monkeypatch):
     import main
 
     monkeypatch.setattr(main, "HERO_DEFEAT_MESSAGES", ["다음엔 이긴다!"])
-    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None: None)
+    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None, **kw: None)
     app = App(FakeSource())
     app.entries = []
     app.hero = 0
@@ -159,3 +163,29 @@ def test_title_screen_draws_with_and_without_background(monkeypatch):
     app.assets.title_boss = None
     app.title_heroes = []
     app.draw()
+
+
+def test_difficulty_choice_changes_battle_and_keeps_boards_separate(monkeypatch):
+    saved = {}
+    monkeypatch.setattr("main.leaderboard.save", lambda entries, path=None, difficulty="hard": saved.update({difficulty: list(entries)}))
+    app = App(FakeSource())
+    app._boards = {"easy": [], "hard": []}
+    app.entries = app._boards["hard"]
+    app.go("difficulty")
+    app.draw()
+    app.handle_key(pygame.K_UP)
+    assert app.difficulty == "easy" and app.entries is app._boards["easy"]
+    app.handle_key(pygame.K_RETURN)
+    assert app.state == "select"
+    app.start_calibration()
+    app.est.calibrate(0.0, 1.0)
+    app.battle = game.Battle(difficulty=app.difficulty)
+    assert app.battle.boss.phases is config.DIFFICULTIES["easy"]["phases"]
+    app.name = "쉬운이"
+    app.battle.state = game.WON
+    app.battle.time = 50.0
+    app.finish_battle()
+    assert saved["easy"][0]["name"] == "쉬운이" and "hard" not in saved
+    app.set_difficulty("hard")
+    assert app.entries == []
+    app.draw_leaderboard()

@@ -39,7 +39,7 @@ NAME_MAX = 8  # 이름 최대 글자 수
 LEADERBOARD_SIZE = 20  # 리더보드에 남기는 기록 수
 THEME = "deep_sea"  # theme.py의 THEMES 이름. 원래 모습은 "default"
 # 캐릭터 선택창에 보이는 이름. hero_1.png부터 차례로 붙고, 모자라는 칸은 "용사 N"으로 나온다.
-HERO_NAMES: list[str] = ["먀먀(박미아T)","백설기(박설희T)","짭지찬(박지환)","BBK(변보경T)","'에겐'(이동건)","밤톨(박승호T)","베로니카(정수연T)","이제훈(양진철T)","은혜민주주의공화국(김은혜T)","민주주의(구민주T)","유부남(유태훈T)","물리(신효성T)"]  # 예: ["하나", "두리", "세나"]
+HERO_NAMES: list[str] = ["먀먀(박미아T)","백설기(박설희T)","짭지찬(박지환)","BBK(변보경T)","'에겐'(이동건)","밤톨(박승호T)","베로니카(정수연T)","이제훈(양진철T)","은혜민주주의공화국(김은혜T)","민주주의(구민주T)","유부남(유태훈T)","물리(신효성T)","포근해(김근해T)"]  # 예: ["하나", "두리", "세나"]
 # 캐릭터마다 지는 순간 결과 화면에 보여줄 한마디. HERO_NAMES와 같은 순서로 적고, ""이면 아무것도 안 보여준다.
 HERO_DEFEAT_MESSAGES: list[str] = ["이걸 죽니?", "", "PSC 부장이 탄핵되었습니다.", "지금 돌아가신 겁니까?", "테슬라 부장이 탄핵되었습니다.", "어……………..", "", "", "", "민주주의가 죽었습니다. 공산주의가 이겼습니다.", "죽었다.(쇳소리로)", ""]  # 예: ["아쉽다...", "", "다음엔 이긴다!"]
 FPS = 60
@@ -70,7 +70,7 @@ BOSS_MAX_HP = 120  # 총알 맞는 횟수
 
 # ---- 불 투사체 ----
 FIRE_W, FIRE_H = 26, 38
-FIRE_HIT_SHRINK = 12  # 불 충돌 판정을 그림보다 작게 (판정 = FIRE_W,H에서 이만큼 뺀 크기)
+FIRE_HIT_SHRINK = 11  # 불 충돌 판정을 그림보다 작게 (판정 = FIRE_W,H에서 이만큼 뺀 크기)
 # 보스 체력을 3등분해 앞에서부터 페이즈 1, 2, 3.
 # interval: 불을 떨어뜨리는 주기(초), count: 한 번에 떨어뜨리는 불 개수(위치는 모두 무작위),
 # speed: 불이 보스 아래에서 나와 떨어지기 시작할 때의 속도(초당 픽셀). 내려갈수록 FIRE_GRAVITY만큼 빨라진다,
@@ -80,9 +80,21 @@ BOSS_PHASES = [
     {"interval": 0.5, "speed": 150.0, "count": 2, "bolt_interval": 2.2, "meteor_interval": 0.0},
     {"interval": 0.45, "speed": 170.0, "count": 2, "bolt_interval": 1.6, "meteor_interval": 3.5},
 ]
+# 쉬움: 불이 적고 느리고, 빠른 총알은 3페이즈에만, 운석은 없다.
+EASY_PHASES = [
+    {"interval": 1.0, "speed": 110.0, "count": 1, "bolt_interval": 0.0, "meteor_interval": 0.0},
+    {"interval": 0.8, "speed": 120.0, "count": 1, "bolt_interval": 0.0, "meteor_interval": 0.0},
+    {"interval": 0.7, "speed": 130.0, "count": 2, "bolt_interval": 3.5, "meteor_interval": 0.0},
+]
 # 불은 보스 아래에서 나와 중력처럼 서서히 빨라진다. 먼저 나온 불이 더 빨라서 불 사이가 벌어진다.
 # 속도 = sqrt(시작 속도² + 2 × FIRE_GRAVITY × 보스 아래에서 내려온 거리). 클수록 빠르게 가속한다.
 FIRE_GRAVITY = 80.0
+# 난이도. 어려움이 위의 BOSS_PHASES와 FIRE_GRAVITY(원래 패턴), 쉬움은 EASY_PHASES와 아래 gravity를 쓴다.
+DIFFICULTIES = {
+    "easy": {"label": "쉬움", "desc": "불이 적고 느려요. 운석은 없어요", "phases": EASY_PHASES, "gravity": 60.0},
+    "hard": {"label": "어려움", "desc": "불이 많고 빨라요. 운석도 떨어져요", "phases": BOSS_PHASES, "gravity": FIRE_GRAVITY},
+}
+DEFAULT_DIFFICULTY = "hard"
 FIRE_MIN_GAP = 80  # 한 번에 나오는 불끼리 가로로 최소 이만큼 떨어뜨린다
 FIRE_SPAWN_JITTER = 110  # 불이 보스 몸 안쪽 이만큼 위에서 제각각 나와 떨어진다 (한 줄로 안 보이게)
 
